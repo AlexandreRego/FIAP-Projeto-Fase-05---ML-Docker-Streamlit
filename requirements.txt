@@ -1,0 +1,12 @@
+streamlit
+pandas
+scikit-learn
+plotly
+numpy
+nltk
+spacy
+seaborn
+joblib
+spacy
+wikipedia
+sentence_transformers

@@ -1,0 +1,37 @@
+import pandas as pd
+from sklearn.feature_extraction.text import TfidfVectorizer
+from sklearn.ensemble import RandomForestRegressor
+import joblib
+
+# Carregar dados
+applicants = pd.read_csv("applicants.csv")
+vagas = pd.read_csv("vagas.csv")
+pares = pd.read_csv("pares_candidato_vaga.csv")  # colunas: id_candidato, id_vaga, compatibilidade
+
+# Preparar textos
+applicants['texto_completo'] = applicants['cv_pt']
+vagas['texto_completo'] = vagas['perfil_vaga_principais_atividades'].fillna('') + " " + \
+                          vagas['perfil_vaga_competencia_tecnicas_e_comportamentais'].fillna('')
+
+pares = pares.merge(applicants[['id_candidato','texto_completo']], on='id_candidato')
+pares = pares.merge(vagas[['ID da Vaga','texto_completo']], left_on='id_vaga', right_on='ID da Vaga')
+pares['texto_final'] = pares['texto_completo_x'] + " " + pares['texto_completo_y']
+
+# TF-IDF
+vectorizer = TfidfVectorizer(ngram_range=(1,2), min_df=2, max_features=5000)
+X = vectorizer.fit_transform(pares['texto_final'])
+y = pares['compatibilidade']
+
+# Treinar modelo
+model = RandomForestRegressor(n_estimators=200, random_state=42)
+model.fit(X, y)
+
+# ===============================
+# Salvar artefatos em pasta do projeto
+# ===============================
+import os
+
+os.makedirs("model", exist_ok=True)  # cria a pasta 'model' se não existir
+joblib.dump(model, "model/model_rf.pkl")
+joblib.dump(vectorizer, "model/vectorizer.pkl")
+print("Modelos salvos com sucesso!")
