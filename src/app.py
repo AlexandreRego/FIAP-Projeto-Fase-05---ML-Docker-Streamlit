@@ -4,7 +4,6 @@ import pandas as pd
 from sklearn.metrics.pairwise import cosine_similarity
 import joblib
 import os
-import matplotlib.pyplot as plot
 import numpy as np
 
 # ===============================
