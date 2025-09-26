@@ -20,7 +20,7 @@ def load_data():
     applicants = pd.read_csv("https://github.com/AlexandreRego/FIAP-Projeto-Fase-05---ML-Docker-Streamlit/blob/main/data/applicants.csv", low_memory=False)
     vagas = pd.read_csv("vagas.csv", low_memory=False)
 
-    if os.path.exists("prospects.csv"):
+    if os.path.exists("https://github.com/AlexandreRego/FIAP-Projeto-Fase-05---ML-Docker-Streamlit/blob/main/data/prospects.csv"):
         prospects = pd.read_csv("prospects.csv", low_memory=False)
         prospects.columns = prospects.columns.str.strip().str.lower()
     else:
