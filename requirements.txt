@@ -1,11 +1,21 @@
+# Streamlit para o app web
 streamlit==1.40.2
+
+# Manipulação de dados
 pandas==2.2.2
 numpy==2.2.6
+
+# Visualização
 matplotlib==3.9.2
-scikit-learn==1.5.1
-joblib==1.4.2
-spacy==3.8.7
-pdf2image==1.17.0
-pytesseract==0.3.10
 plotly==5.24.1
 
+# Machine Learning
+scikit-learn==1.5.1
+joblib==1.4.2
+
+# Processamento de texto
+spacy==3.8.7
+
+# OCR e manipulação de PDFs/imagens
+pdf2image==1.17.0
+pytesseract==0.3.10
