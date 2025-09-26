@@ -165,10 +165,10 @@ with tab1:
                 st.error("❌ Não aprovado ou não seguiu na etapa de seleção")
 
 # -------------------------------
-# Aba 2: Top 10 Candidatos
+# Aba 2: Top 5 Candidatos
 # -------------------------------
 with tab2:
-    id_vaga_top = st.text_input("Digite o ID da Vaga para buscar os melhores candidatos:", key="top10")
+    id_vaga_top = st.text_input("Digite o ID da Vaga para buscar os melhores candidatos:", key="top5")
 
     if id_vaga_top:
         vaga_top = vagas[vagas["ID da Vaga"].astype(str) == id_vaga_top]
@@ -202,9 +202,9 @@ with tab2:
                 progress_bar.progress((idx + 1) / total_candidatos)
 
             resultados_df = pd.DataFrame(resultados)
-            top10 = resultados_df.nlargest(10, 'compatibilidade')
+            top10 = resultados_df.nlargest(5, 'compatibilidade')
 
-            st.subheader("🏆 Top 10 Candidatos")
+            st.subheader("🏆 Top 5 Candidatos")
             top10_display = top10.copy()
             top10_display['compatibilidade'] = top10_display['compatibilidade'].apply(lambda x: f"{x*100:.2f}%")
             st.dataframe(top10_display[['id_candidato','nome','compatibilidade','area_atuacao','nivel_academico']], use_container_width=True)
