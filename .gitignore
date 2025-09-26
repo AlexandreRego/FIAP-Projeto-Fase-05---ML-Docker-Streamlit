@@ -9,12 +9,6 @@ venv/
 .env
 .env.* 
 
-# Data / outputs
-data/
-*.csv
-*.xlsx
-/model/
-
 # IDEs / OS
 .vscode/
 .idea/
