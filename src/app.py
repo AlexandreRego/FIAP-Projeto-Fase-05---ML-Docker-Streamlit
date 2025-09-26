@@ -17,11 +17,21 @@ st.set_page_config(page_title="Compatibilidade Candidato vs Vaga", layout="wide"
 # ===============================
 @st.cache_data
 def load_data():
-    applicants = pd.read_csv("https://github.com/AlexandreRego/FIAP-Projeto-Fase-05---ML-Docker-Streamlit/blob/main/data/applicants.csv", low_memory=False)
-    vagas = pd.read_csv("https://github.com/AlexandreRego/FIAP-Projeto-Fase-05---ML-Docker-Streamlit/blob/main/data/vagas.csv", low_memory=False)
+    # Caminhos relativos corretos, baseados na estrutura de pastas da imagem
+    applicants_path = "data/applicants.csv"
+    vagas_path = "data/vagas.csv"
+    prospects_path = "data/prospects.csv"
 
-    if os.path.exists("https://github.com/AlexandreRego/FIAP-Projeto-Fase-05---ML-Docker-Streamlit/blob/main/data/prospects.csv"):
-        prospects = pd.read_csv("prospects.csv", low_memory=False)
+    # Verifique se os arquivos existem antes de tentar carregá-los
+    if not os.path.exists(applicants_path) or not os.path.exists(vagas_path):
+        st.error("❌ Arquivos de dados 'applicants.csv' ou 'vagas.csv' não encontrados na pasta 'data/'.")
+        st.stop()
+
+    applicants = pd.read_csv(applicants_path, low_memory=False)
+    vagas = pd.read_csv(vagas_path, low_memory=False)
+
+    if os.path.exists(prospects_path):
+        prospects = pd.read_csv(prospects_path, low_memory=False)
         prospects.columns = prospects.columns.str.strip().str.lower()
     else:
         prospects = pd.DataFrame(columns=["codigo", "titulo"])
@@ -33,16 +43,17 @@ applicants, vagas, prospects = load_data()
 # Preparar texto completo
 applicants['texto_completo'] = applicants['cv_pt'].fillna('')
 vagas['texto_completo'] = vagas['perfil_vaga_principais_atividades'].fillna('') + " " + \
-                          vagas['perfil_vaga_competencia_tecnicas_e_comportamentais'].fillna('')
+                         vagas['perfil_vaga_competencia_tecnicas_e_comportamentais'].fillna('')
 
 # ===============================
 # Carregar TF-IDF salvo
 # ===============================
+# Corrija o caminho para ser relativo, assim como os arquivos CSV
 vectorizer_path = "model/vectorizer.pkl"
 if os.path.exists(vectorizer_path):
     vectorizer = joblib.load(vectorizer_path)
 else:
-    st.error("❌ TF-IDF não encontrado em /model/vectorizer.pkl. Execute train_model.py primeiro.")
+    st.error("❌ TF-IDF não encontrado em 'model/vectorizer.pkl'. Execute train_model.py primeiro.")
     st.stop()
 
 # ===============================
