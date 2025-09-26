@@ -178,35 +178,42 @@ with tab2:
             vaga_texto_top = vaga_top['texto_completo'].values[0]
             st.success(f"✅ Vaga encontrada: {vaga_top['informacoes_basicas_titulo_vaga'].values[0]}")
 
-            st.info("⏳ Calculando compatibilidade para todos os candidatos...")
+            def buscar_top5(applicants_slice, threshold, vaga_texto):
+                resultados = []
+                for _, candidato in applicants_slice.iterrows():
+                    similarity, tfidf_matrix = calcular_similaridade(
+                        candidato['texto_completo'], vaga_texto
+                    )
+                    if similarity >= threshold:
+                        resultados.append({
+                            'id_candidato': candidato['id_candidato'],
+                            'nome': candidato['infos_basicas_nome'],
+                            'compatibilidade': similarity,
+                            'area_atuacao': candidato['informacoes_profissionais_area_atuacao'],
+                            'nivel_academico': candidato['formacao_e_idiomas_nivel_academico'],
+                            'email': candidato['informacoes_pessoais_email'],
+                            'telefone': candidato['informacoes_pessoais_telefone_celular'],
+                            'keywords': get_top_keywords(tfidf_matrix, vectorizer, 5)
+                        })
+                        if len(resultados) >= 5:  # já encontrou 5
+                            break
+                return resultados
 
-            # Barra de progresso
-            progress_bar = st.progress(0)
-            resultados = []
-            total_candidatos = len(applicants)
+            # Estratégia em blocos
+            top5 = []
+            if len(top5) < 5:
+                top5 = buscar_top5(applicants.head(1000), 0.70, vaga_texto_top)
 
-            for idx, candidato in enumerate(applicants.iterrows()):
-                candidato_texto = candidato[1]['texto_completo']
-                similarity, tfidf_matrix = calcular_similaridade(candidato_texto, vaga_texto_top)
-                
-                resultados.append({
-                    'id_candidato': candidato[1]['id_candidato'],
-                    'nome': candidato[1]['infos_basicas_nome'],
-                    'compatibilidade': similarity,
-                    'area_atuacao': candidato[1]['informacoes_profissionais_area_atuacao'],
-                    'nivel_academico': candidato[1]['formacao_e_idiomas_nivel_academico'],
-                    'email': candidato[1]['informacoes_pessoais_email'],
-                    'telefone': candidato[1]['informacoes_pessoais_telefone_celular'],
-                    'keywords': get_top_keywords(tfidf_matrix, vectorizer, 5)
-                })
+            if len(top5) < 5:
+                top5 += buscar_top5(applicants.iloc[1000:6000], 0.50, vaga_texto_top)
 
-                # Atualiza a barra de progresso
-                progress_bar.progress((idx + 1) / total_candidatos)
+            if len(top5) < 5:
+                top5 += buscar_top5(applicants.iloc[6000:11000], 0.30, vaga_texto_top)
 
-            resultados_df = pd.DataFrame(resultados)
-            top10 = resultados_df.nlargest(5, 'compatibilidade')
-
-            st.subheader("🏆 Top 5 Candidatos")
-            top10_display = top10.copy()
-            top10_display['compatibilidade'] = top10_display['compatibilidade'].apply(lambda x: f"{x*100:.2f}%")
-            st.dataframe(top10_display[['id_candidato','nome','compatibilidade','area_atuacao','nivel_academico']], use_container_width=True)
+            if top5:
+                st.subheader("🏆 Top 5 Candidatos")
+                resultados_df = pd.DataFrame(top5[:5])  # garante só 5
+                resultados_df['compatibilidade'] = resultados_df['compatibilidade'].apply(lambda x: f"{x*100:.2f}%")
+                st.dataframe(resultados_df[['id_candidato','nome','compatibilidade','area_atuacao','nivel_academico']], use_container_width=True)
+            else:
+                st.warning("⚠️ Nenhum candidato encontrado com os critérios definidos.")
