@@ -13,9 +13,3 @@ plotly==5.24.1
 scikit-learn==1.5.1
 joblib==1.4.2
 
-# Processamento de texto
-spacy==3.8.7
-
-# OCR e manipulação de PDFs/imagens
-pdf2image==1.17.0
-pytesseract==0.3.10
