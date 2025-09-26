@@ -84,7 +84,7 @@ def get_top_keywords(tfidf_matrix, vectorizer, top_n=10):
 # ===============================
 st.title("🔎 Análise de Compatibilidade")
 
-tab1, tab2 = st.tabs(["Análise Individual (Cód. Candidato Vs Cód. Vaga)", "Top 10 Candidatos para Vaga"])
+tab1, tab2 = st.tabs(["Análise Individual (Cód. Candidato Vs Cód. Vaga)", "Top 5 Candidatos para Vaga"])
 
 # ===============================
 # CSS - Plano de fundo
