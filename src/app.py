@@ -28,7 +28,14 @@ def load_data():
         st.stop()
 
     applicants = pd.read_csv(applicants_path, low_memory=False)
-    vagas = pd.read_csv(vagas_path, low_memory=False)
+    
+    # Adicionando a correção para o arquivo vagas.csv
+    try:
+        # Tenta ler com o delimitador padrão
+        vagas = pd.read_csv(vagas_path, low_memory=False)
+    except pd.errors.ParserError:
+        # Se falhar, tenta ler com ponto e vírgula e codificação latina
+        vagas = pd.read_csv(vagas_path, sep=';', encoding='latin1', low_memory=False)
 
     if os.path.exists(prospects_path):
         prospects = pd.read_csv(prospects_path, low_memory=False)
