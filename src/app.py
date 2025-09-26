@@ -13,30 +13,34 @@ import numpy as np
 st.set_page_config(page_title="Compatibilidade Candidato vs Vaga", layout="wide")
 
 # ===============================
+# Diretório base (para caminhos robustos)
+# ===============================
+BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+
+# ===============================
 # Carregar dados CSV
 # ===============================
 @st.cache_data
 def load_data():
-    # Caminhos relativos corretos, baseados na estrutura de pastas da imagem
-    applicants_path = "data/applicants.csv"
-    vagas_path = "data/vagas.csv"
-    prospects_path = "data/prospects.csv"
+    applicants_path = os.path.join(BASE_DIR, "data", "applicants.csv")
+    vagas_path = os.path.join(BASE_DIR, "data", "vagas.csv")
+    prospects_path = os.path.join(BASE_DIR, "data", "prospects.csv")
 
     # Verifique se os arquivos existem antes de tentar carregá-los
     if not os.path.exists(applicants_path) or not os.path.exists(vagas_path):
         st.error("❌ Arquivos de dados 'applicants.csv' ou 'vagas.csv' não encontrados na pasta 'data/'.")
         st.stop()
 
+    # Ler applicants
     applicants = pd.read_csv(applicants_path, low_memory=False)
-    
-    # Adicionando a correção para o arquivo vagas.csv
+
+    # Ler vagas (com tratamento de possíveis delimitadores e encoding)
     try:
-        # Tenta ler com o delimitador padrão
         vagas = pd.read_csv(vagas_path, low_memory=False)
     except pd.errors.ParserError:
-        # Se falhar, tenta ler com ponto e vírgula e codificação latina
         vagas = pd.read_csv(vagas_path, sep=';', encoding='latin1', low_memory=False)
 
+    # Ler prospects
     if os.path.exists(prospects_path):
         prospects = pd.read_csv(prospects_path, low_memory=False)
         prospects.columns = prospects.columns.str.strip().str.lower()
@@ -55,8 +59,7 @@ vagas['texto_completo'] = vagas['perfil_vaga_principais_atividades'].fillna('') 
 # ===============================
 # Carregar TF-IDF salvo
 # ===============================
-# Corrija o caminho para ser relativo, assim como os arquivos CSV
-vectorizer_path = "model/vectorizer.pkl"
+vectorizer_path = os.path.join(BASE_DIR, "model", "vectorizer.pkl")
 if os.path.exists(vectorizer_path):
     vectorizer = joblib.load(vectorizer_path)
 else:
@@ -208,5 +211,3 @@ with tab2:
             top10_display = top10.copy()
             top10_display['compatibilidade'] = top10_display['compatibilidade'].apply(lambda x: f"{x*100:.2f}%")
             st.dataframe(top10_display[['id_candidato','nome','compatibilidade','area_atuacao','nivel_academico']], use_container_width=True)
-
-
