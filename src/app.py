@@ -17,7 +17,7 @@ st.set_page_config(page_title="Compatibilidade Candidato vs Vaga", layout="wide"
 # ===============================
 @st.cache_data
 def load_data():
-    applicants = pd.read_csv("applicants.csv", low_memory=False)
+    applicants = pd.read_csv("https://github.com/AlexandreRego/FIAP-Projeto-Fase-05---ML-Docker-Streamlit/blob/main/data/applicants.csv", low_memory=False)
     vagas = pd.read_csv("vagas.csv", low_memory=False)
 
     if os.path.exists("prospects.csv"):
