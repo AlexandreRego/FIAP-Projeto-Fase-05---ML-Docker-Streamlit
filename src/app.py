@@ -17,11 +17,28 @@ st.set_page_config(page_title="Compatibilidade Candidato vs Vaga", layout="wide"
 # ===============================
 @st.cache_data
 def load_data():
-    applicants = pd.read_csv("applicants.csv", low_memory=False)
-    vagas = pd.read_csv("vagas.csv", low_memory=False)
+    # Caminhos relativos corretos, baseados na estrutura de pastas da imagem
+    applicants_path = "data/applicants.csv"
+    vagas_path = "data/vagas.csv"
+    prospects_path = "data/prospects.csv"
 
-    if os.path.exists("prospects.csv"):
-        prospects = pd.read_csv("prospects.csv", low_memory=False)
+    # Verifique se os arquivos existem antes de tentar carregá-los
+    if not os.path.exists(applicants_path) or not os.path.exists(vagas_path):
+        st.error("❌ Arquivos de dados 'applicants.csv' ou 'vagas.csv' não encontrados na pasta 'data/'.")
+        st.stop()
+
+    applicants = pd.read_csv(applicants_path, low_memory=False)
+    
+    # Adicionando a correção para o arquivo vagas.csv
+    try:
+        # Tenta ler com o delimitador padrão
+        vagas = pd.read_csv(vagas_path, low_memory=False)
+    except pd.errors.ParserError:
+        # Se falhar, tenta ler com ponto e vírgula e codificação latina
+        vagas = pd.read_csv(vagas_path, sep=';', encoding='latin1', low_memory=False)
+
+    if os.path.exists(prospects_path):
+        prospects = pd.read_csv(prospects_path, low_memory=False)
         prospects.columns = prospects.columns.str.strip().str.lower()
     else:
         prospects = pd.DataFrame(columns=["codigo", "titulo"])
@@ -33,16 +50,17 @@ applicants, vagas, prospects = load_data()
 # Preparar texto completo
 applicants['texto_completo'] = applicants['cv_pt'].fillna('')
 vagas['texto_completo'] = vagas['perfil_vaga_principais_atividades'].fillna('') + " " + \
-                          vagas['perfil_vaga_competencia_tecnicas_e_comportamentais'].fillna('')
+                         vagas['perfil_vaga_competencia_tecnicas_e_comportamentais'].fillna('')
 
 # ===============================
 # Carregar TF-IDF salvo
 # ===============================
+# Corrija o caminho para ser relativo, assim como os arquivos CSV
 vectorizer_path = "model/vectorizer.pkl"
 if os.path.exists(vectorizer_path):
     vectorizer = joblib.load(vectorizer_path)
 else:
-    st.error("❌ TF-IDF não encontrado em /model/vectorizer.pkl. Execute train_model.py primeiro.")
+    st.error("❌ TF-IDF não encontrado em 'model/vectorizer.pkl'. Execute train_model.py primeiro.")
     st.stop()
 
 # ===============================
@@ -147,10 +165,10 @@ with tab1:
                 st.error("❌ Não aprovado ou não seguiu na etapa de seleção")
 
 # -------------------------------
-# Aba 2: Top 10 Candidatos
+# Aba 2: Top 5 Candidatos
 # -------------------------------
 with tab2:
-    id_vaga_top = st.text_input("Digite o ID da Vaga para buscar os melhores candidatos:", key="top10")
+    id_vaga_top = st.text_input("Digite o ID da Vaga para buscar os melhores candidatos:", key="top5")
 
     if id_vaga_top:
         vaga_top = vagas[vagas["ID da Vaga"].astype(str) == id_vaga_top]
@@ -184,9 +202,9 @@ with tab2:
                 progress_bar.progress((idx + 1) / total_candidatos)
 
             resultados_df = pd.DataFrame(resultados)
-            top10 = resultados_df.nlargest(10, 'compatibilidade')
+            top10 = resultados_df.nlargest(5, 'compatibilidade')
 
-            st.subheader("🏆 Top 10 Candidatos")
+            st.subheader("🏆 Top 5 Candidatos")
             top10_display = top10.copy()
             top10_display['compatibilidade'] = top10_display['compatibilidade'].apply(lambda x: f"{x*100:.2f}%")
             st.dataframe(top10_display[['id_candidato','nome','compatibilidade','area_atuacao','nivel_academico']], use_container_width=True)
