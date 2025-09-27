@@ -41,7 +41,8 @@ ________________________________________________________________________________
 
 # Estrutura do Projeto ⚙️
 
-<img width="620" height="272" alt="image" src="https://github.com/user-attachments/assets/c6607854-0be2-4dab-a481-0ec085a28eb5" />
+<img width="541" height="306" alt="image" src="https://github.com/user-attachments/assets/e9176503-b137-4c2b-bf9d-75129da72b2b" />
+
 
 ___________________________________________________________________________________________________________________________
 
