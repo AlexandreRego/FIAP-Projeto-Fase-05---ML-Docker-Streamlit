@@ -1,3 +1,4 @@
+# app.py
 # -*- coding: utf-8 -*-
 import streamlit as st
 import pandas as pd
@@ -5,6 +6,9 @@ from sklearn.metrics.pairwise import cosine_similarity
 import joblib
 import os
 import numpy as np
+import re
+import unicodedata
+import spacy
 
 # ===============================
 # Configuração da Página
@@ -12,9 +16,38 @@ import numpy as np
 st.set_page_config(page_title="Compatibilidade Candidato vs Vaga", layout="wide")
 
 # ===============================
-# Diretório base (para caminhos robustos)
+# Diretório base
 # ===============================
-BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+
+# ===============================
+# Inicializar spaCy
+# ===============================
+try:
+    nlp = spacy.load("pt_core_news_sm")
+except OSError:
+    st.error("❌ Modelo spaCy 'pt_core_news_sm' não encontrado. Rode: python -m spacy download pt_core_news_sm")
+    st.stop()
+
+# ===============================
+# Funções de pré-processamento
+# ===============================
+def clean_text(text):
+    if not isinstance(text, str):
+        return ''
+    text = text.lower()
+    text = unicodedata.normalize('NFKD', text).encode('ASCII', 'ignore').decode('utf-8')
+    text = re.sub(r'[^a-z0-9\s]', ' ', text)
+    text = re.sub(r'\s+', ' ', text).strip()
+    return text
+
+def lemmatize_text(text):
+    doc = nlp(text)
+    tokens = [token.lemma_ for token in doc if not token.is_stop and token.is_alpha]
+    return ' '.join(tokens)
+
+def preprocess_text(text):
+    return lemmatize_text(clean_text(text))
 
 # ===============================
 # Carregar dados CSV
@@ -25,21 +58,17 @@ def load_data():
     vagas_path = os.path.join(BASE_DIR, "data", "vagas.csv")
     prospects_path = os.path.join(BASE_DIR, "data", "prospects.csv")
 
-    # Verifique se os arquivos existem antes de tentar carregá-los
     if not os.path.exists(applicants_path) or not os.path.exists(vagas_path):
-        st.error("❌ Arquivos de dados 'applicants.csv' ou 'vagas.csv' não encontrados na pasta 'data/'.")
+        st.error("❌ Arquivos 'applicants.csv' ou 'vagas.csv' não encontrados na pasta 'data/'.")
         st.stop()
 
-    # Ler applicants
     applicants = pd.read_csv(applicants_path, low_memory=False)
 
-    # Ler vagas (com tratamento de possíveis delimitadores e encoding)
     try:
         vagas = pd.read_csv(vagas_path, low_memory=False)
     except pd.errors.ParserError:
         vagas = pd.read_csv(vagas_path, sep=';', encoding='latin1', low_memory=False)
 
-    # Ler prospects
     if os.path.exists(prospects_path):
         prospects = pd.read_csv(prospects_path, low_memory=False)
         prospects.columns = prospects.columns.str.strip().str.lower()
@@ -50,13 +79,17 @@ def load_data():
 
 applicants, vagas, prospects = load_data()
 
-# Preparar texto completo
-applicants['texto_completo'] = applicants['cv_pt'].fillna('')
-vagas['texto_completo'] = vagas['perfil_vaga_principais_atividades'].fillna('') + " " + \
-                         vagas['perfil_vaga_competencia_tecnicas_e_comportamentais'].fillna('')
+# ===============================
+# Preparar textos (com preprocessamento)
+# ===============================
+applicants['texto_completo'] = applicants['cv_pt'].fillna('').apply(preprocess_text)
+vagas['texto_completo'] = (
+    vagas['perfil_vaga_principais_atividades'].fillna('') + " " +
+    vagas['perfil_vaga_competencia_tecnicas_e_comportamentais'].fillna('')
+).apply(preprocess_text)
 
 # ===============================
-# Carregar TF-IDF salvo
+# Carregar TF-IDF
 # ===============================
 vectorizer_path = os.path.join(BASE_DIR, "model", "vectorizer.pkl")
 if os.path.exists(vectorizer_path):
@@ -76,15 +109,14 @@ def calcular_similaridade(candidato_texto, vaga_texto):
 def get_top_keywords(tfidf_matrix, vectorizer, top_n=10):
     feature_array = np.array(vectorizer.get_feature_names_out())
     tfidf_sorting = np.argsort(tfidf_matrix.toarray()).flatten()[::-1]
-    top_n_terms = feature_array[tfidf_sorting][:top_n]
-    return top_n_terms
+    return feature_array[tfidf_sorting][:top_n]
 
 # ===============================
 # Layout do App
 # ===============================
 st.title("🔎 Análise de Compatibilidade")
 
-tab1, tab2 = st.tabs(["Análise Individual (Cód. Candidato Vs Cód. Vaga)", "Top 5 Candidatos para Vaga"])
+tab1, tab2 = st.tabs(["Análise Individual", "Top 5 Candidatos"])
 
 # ===============================
 # CSS - Plano de fundo
