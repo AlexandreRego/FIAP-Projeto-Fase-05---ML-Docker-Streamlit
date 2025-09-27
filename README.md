@@ -1,21 +1,21 @@
 # Compatibilidade Candidato vs Vaga 🔎
 ## Descrição do Projeto 📌
 
-Este projeto tem como objetivo analisar a compatibilidade entre candidatos e vagas de emprego utilizando técnicas de Processamento de Linguagem Natural (NLP) e similaridade de textos.
+## Este projeto permite analisar a compatibilidade entre candidatos e vagas de emprego utilizando técnicas de Processamento de Linguagem Natural (NLP) e similaridade de textos.
 
-## O sistema permite:
+### O sistema permite:
 
-1 - Comparar um candidato específico com uma vaga escolhida;
+Comparar um candidato específico com uma vaga escolhida;
 
-2 - Exibir informações detalhadas do candidato e da vaga;
+Exibir informações detalhadas do candidato e da vaga;
 
-3 - Calcular o percentual de compatibilidade com base no currículo (CV) e descrição da vaga;
+Calcular o percentual de compatibilidade com base no currículo (CV) e descrição da vaga;
 
-4 - Listar o Top 05 candidatos mais compatíveis para uma vaga;
+Listar o Top 5 candidatos mais compatíveis para uma vaga;
 
-5 - Visualizar palavras-chave mais relevantes na compatibilidade (interpretabilidade).
+Visualizar palavras-chave mais relevantes na compatibilidade (interpretabilidade).
 
-O projeto conta com uma pipeline de pré-processamento para tratar textos em português, utilizando spaCy e TF-IDF para transformar descrições em vetores comparáveis.
+O projeto utiliza uma pipeline de pré-processamento leve para tratar textos em português, transformando descrições em vetores comparáveis com TF-IDF.
 
 ___________________________________________________________________________________________________________________________
 
@@ -24,8 +24,6 @@ ________________________________________________________________________________
 Linguagem: Python 3.10+
 
 Framework Web: Streamlit
-
-NLP: spaCy (pt_core_news_sm)
 
 Machine Learning: scikit-learn (TF-IDF + Similaridade do Cosseno)
 
@@ -41,7 +39,20 @@ ________________________________________________________________________________
 
 # Estrutura do Projeto ⚙️
 
-<img width="541" height="306" alt="image" src="https://github.com/user-attachments/assets/e9176503-b137-4c2b-bf9d-75129da72b2b" />
+project/
+│
+├─ data/
+│  ├─ applicants.csv
+│  ├─ vagas.csv
+│  └─ prospects.csv
+│
+├─ model/
+│  └─ vectorizer.pkl   # gerado após treinar o modelo
+│
+├─ app.py
+├─ train_model.py
+├─ requirements.txt
+└─ README.md
 
 
 ___________________________________________________________________________________________________________________________
@@ -63,13 +74,9 @@ venv\Scripts\activate      # Windows
 
 pip install -r requirements.txt
 
-## Baixe o modelo spaCy em português:
-
-python -m spacy download pt_core_news_sm
-
 ## Treine o modelo (apenas na primeira vez):
 
-python train_model_robusto_pt.py
+python train_model.py
 
 Isso irá gerar o arquivo model/vectorizer.pkl.
 
@@ -99,24 +106,17 @@ ________________________________________________________________________________
 
 # Justificativa da Escolha do Modelo 📊
 
-### TF-IDF (Term Frequency – Inverse Document Frequency):
-Escolhido para transformar textos em vetores numéricos que refletem a importância de termos dentro do contexto de candidatos e vagas.
+## TF-IDF (Term Frequency – Inverse Document Frequency):
+Transforma textos em vetores numéricos refletindo a importância de cada termo dentro do contexto de candidatos e vagas.
 
 ### Similaridade do Cosseno:
-Métrica eficiente para comparar a proximidade semântica entre o currículo de um candidato e a descrição de uma vaga.
+Compara a proximidade semântica entre o currículo de um candidato e a descrição da vaga de forma eficiente.
 
 ### Interpretabilidade:
-O sistema retorna as palavras-chave mais relevantes que explicam a compatibilidade, permitindo compreender o porquê de um candidato estar bem (ou mal) ranqueado.
+O sistema retorna as palavras-chave mais relevantes que explicam a compatibilidade, permitindo entender o porquê de um candidato estar bem (ou mal) ranqueado.
 
-### Métricas de Validação:
-
-Distribuição de similaridades avaliada para garantir separação entre perfis compatíveis e não compatíveis;
-
-Ajuste de parâmetros do TF-IDF (ngramas, min_df, max_df, max_features) para equilibrar performance e robustez;
-
-Pipeline de pré-processamento em português com spaCy, incluindo lematização e remoção de stopwords.
-
-Essa abordagem garante um modelo leve, interpretável e eficiente, adequado para sistemas de RH que necessitam de explicabilidade.
+### Pipeline leve:
+Pré-processamento em português usando funções simples (minúsculas, remoção de números e pontuação, remoção de espaços extras), sem SpaCy, garantindo leveza e desempenho no Streamlit Cloud.
 
 __________________________________________________________________________________________________________________________
 
