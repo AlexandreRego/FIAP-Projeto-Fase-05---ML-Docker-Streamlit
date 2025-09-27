@@ -11,7 +11,7 @@ Este projeto tem como objetivo analisar a compatibilidade entre candidatos e vag
 
 3 - Calcular o percentual de compatibilidade com base no currículo (CV) e descrição da vaga;
 
-4 - Listar o Top 10 candidatos mais compatíveis para uma vaga;
+4 - Listar o Top 05 candidatos mais compatíveis para uma vaga;
 
 5 - Visualizar palavras-chave mais relevantes na compatibilidade (interpretabilidade).
 
@@ -88,7 +88,7 @@ Caso novas bases de candidatos ou vagas sejam adicionadas, o modelo deve ser re-
 
 Rode novamente o script de treinamento:
 
-python train_model_robusto_pt.py
+python train_model.py
 
 ## O novo modelo TF-IDF será salvo em:
 
