@@ -1,16 +1,13 @@
 # -*- coding: utf-8 -*-
 import streamlit as st
 import pandas as pd
+import numpy as np
+import os
+import re
+import string
+from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.metrics.pairwise import cosine_similarity
 import joblib
-import os
-import numpy as np
-import spacy
-import re
-import unicodedata
-import spacy
-import subprocess
-import sys
 
 # ===============================
 # Configuração da Página
@@ -18,40 +15,20 @@ import sys
 st.set_page_config(page_title="Compatibilidade Candidato vs Vaga", layout="wide")
 
 # ===============================
-# Diretório base
+# Diretório base (para caminhos robustos)
 # ===============================
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
 # ===============================
-# Garantir que o modelo pt_core_news_sm esteja instalado
+# Função de pré-processamento leve
 # ===============================
-try:
-    nlp = spacy.load("pt_core_news_sm")
-except OSError:
-    print("❌ Modelo 'pt_core_news_sm' não encontrado. Instalando automaticamente...")
-    subprocess.run([sys.executable, "-m", "spacy", "download", "pt_core_news_sm"], check=True)
-    nlp = spacy.load("pt_core_news_sm")
-
-# ===============================
-# Funções de pré-processamento
-# ===============================
-def clean_text(text):
-    if not isinstance(text, str):
-        return ''
-    text = text.lower()
-    text = unicodedata.normalize('NFKD', text).encode('ASCII', 'ignore').decode('utf-8')
-    text = re.sub(r'[^a-z0-9\s]', ' ', text)
-    text = re.sub(r'\s+', ' ', text).strip()
-    return text
-
-def lemmatize_text(text):
-    doc = nlp(text)
-    tokens = [token.lemma_ for token in doc if not token.is_stop and token.is_alpha]
-    return ' '.join(tokens)
-
 def preprocess_text(text):
-    text = clean_text(text)
-    text = lemmatize_text(text)
+    if not isinstance(text, str):
+        return ""
+    text = text.lower()
+    text = re.sub(r'\d+', ' ', text)  # remove números
+    text = text.translate(str.maketrans('', '', string.punctuation))  # remove pontuação
+    text = re.sub(r'\s+', ' ', text).strip()  # remove espaços extras
     return text
 
 # ===============================
@@ -64,11 +41,10 @@ def load_data():
     prospects_path = os.path.join(BASE_DIR, "data", "prospects.csv")
 
     if not os.path.exists(applicants_path) or not os.path.exists(vagas_path):
-        st.error("❌ Arquivos de dados 'applicants.csv' ou 'vagas.csv' não encontrados na pasta 'data/'.")
+        st.error("❌ Arquivos 'applicants.csv' ou 'vagas.csv' não encontrados na pasta 'data/'.")
         st.stop()
 
     applicants = pd.read_csv(applicants_path, low_memory=False)
-
     try:
         vagas = pd.read_csv(vagas_path, low_memory=False)
     except pd.errors.ParserError:
@@ -80,30 +56,28 @@ def load_data():
     else:
         prospects = pd.DataFrame(columns=["codigo", "titulo"])
 
+    # Pré-processamento de texto
+    applicants['texto_completo'] = applicants['cv_pt'].fillna('').apply(preprocess_text)
+    vagas['texto_completo'] = (
+        vagas['perfil_vaga_principais_atividades'].fillna('') + " " +
+        vagas['perfil_vaga_competencia_tecnicas_e_comportamentais'].fillna('')
+    ).apply(preprocess_text)
+
     return applicants, vagas, prospects
 
 applicants, vagas, prospects = load_data()
 
 # ===============================
-# Aplicar pré-processamento
-# ===============================
-st.info("⏳ Processando textos dos candidatos e vagas...")
-
-applicants['texto_completo'] = applicants['cv_pt'].fillna('').apply(preprocess_text)
-vagas['texto_completo'] = (
-    vagas['perfil_vaga_principais_atividades'].fillna('') + " " +
-    vagas['perfil_vaga_competencia_tecnicas_e_comportamentais'].fillna('')
-).apply(preprocess_text)
-
-# ===============================
-# Carregar TF-IDF salvo
+# Carregar ou treinar TF-IDF
 # ===============================
 vectorizer_path = os.path.join(BASE_DIR, "model", "vectorizer.pkl")
 if os.path.exists(vectorizer_path):
     vectorizer = joblib.load(vectorizer_path)
 else:
-    st.error("❌ TF-IDF não encontrado em 'model/vectorizer.pkl'. Execute train_model.py primeiro.")
-    st.stop()
+    vectorizer = TfidfVectorizer(max_features=5000)
+    vectorizer.fit(applicants['texto_completo'].tolist() + vagas['texto_completo'].tolist())
+    os.makedirs(os.path.dirname(vectorizer_path), exist_ok=True)
+    joblib.dump(vectorizer, vectorizer_path)
 
 # ===============================
 # Funções de Similaridade
@@ -126,6 +100,24 @@ st.title("🔎 Análise de Compatibilidade")
 
 tab1, tab2 = st.tabs(["Análise Individual (Cód. Candidato Vs Cód. Vaga)", "Top 5 Candidatos para Vaga"])
 
+# ===============================
+# CSS - Plano de fundo
+# ===============================
+page_bg = """
+<style>
+[data-testid="stAppViewContainer"] { 
+    background-image: url("https://www.itagroup.com/filesimages/Insights/White%20Papers/Channel_Channel%20Partner%20Ecosystems/6.%20Retention%20Channel/Insight-Channel-Ecosystem-Retention-WP-Primary-Image.jpg"); 
+    background-size: cover; 
+    background-position: center; 
+    background-repeat: no-repeat; 
+}
+[data-testid="stHeader"] { background: rgba(0,0,0,0.5); }
+[data-testid="stSidebar"] { background: rgba(255,255,255,0.8); }
+h1, h2, h3, h4, h5, h6, p { color: #ffffff !important; }
+</style>
+"""
+st.markdown(page_bg, unsafe_allow_html=True)
+
 # -------------------------------
 # Aba 1: Análise Individual
 # -------------------------------
@@ -145,7 +137,6 @@ with tab1:
             vaga_texto = vaga['texto_completo'].values[0]
             similarity, _ = calcular_similaridade(candidato_texto, vaga_texto)
 
-            # Informações do Candidato
             st.subheader("📌 Informações do Candidato")
             st.write(f"**Nome:** {candidato['infos_basicas_nome'].values[0]}")
             st.write(f"**Área de Atuação:** {candidato['informacoes_profissionais_area_atuacao'].values[0]}")
@@ -156,7 +147,6 @@ with tab1:
             st.subheader("📄 Texto completo do Candidato")
             st.text_area("CV completo", candidato_texto, height=200)
 
-            # Informações da Vaga
             st.subheader("📌 Informações da Vaga")
             st.write(f"**Título da Vaga:** {vaga['informacoes_basicas_titulo_vaga'].values[0]}")
             st.write(f"**Cliente:** {vaga['informacoes_basicas_cliente'].values[0]}")
@@ -167,14 +157,11 @@ with tab1:
             st.subheader("📄 Texto completo da Vaga")
             st.text_area("Descrição completa da vaga", vaga_texto, height=200)
 
-            # Compatibilidade %
             st.subheader("📊 Compatibilidade")
             st.markdown(f"<h2 style='color:white;'>{similarity*100:.2f}%</h2>", unsafe_allow_html=True)
 
-            # Status de aprovação no prospects
             st.subheader("📌 Status do Processo Seletivo")
             aprovado = prospects[prospects["codigo"].astype(str) == id_candidato]
-
             if not aprovado.empty:
                 st.success(f"✅ Candidato aprovado nas seguintes vagas:")
                 for _, row in aprovado.iterrows():
@@ -221,7 +208,6 @@ with tab2:
                             break
                 return resultados
 
-            # Estratégia em blocos
             top5 = []
             if len(top5) < 5:
                 top5 = buscar_top5(applicants.head(1000), 0.70, vaga_texto_top)
