@@ -39,21 +39,7 @@ ________________________________________________________________________________
 
 # Estrutura do Projeto ⚙️
 
-project/
-│
-├─ data/
-│  ├─ applicants.csv
-│  ├─ vagas.csv
-│  └─ prospects.csv
-│
-├─ model/
-│  └─ vectorizer.pkl   # gerado após treinar o modelo
-│
-├─ app.py
-├─ train_model.py
-├─ requirements.txt
-└─ README.md
-
+<img width="446" height="341" alt="image" src="https://github.com/user-attachments/assets/3b211fad-e825-4fb3-a8a7-405947207a52" />
 
 ___________________________________________________________________________________________________________________________
 
