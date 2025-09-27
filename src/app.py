@@ -8,6 +8,9 @@ import numpy as np
 import spacy
 import re
 import unicodedata
+import spacy
+import subprocess
+import sys
 
 # ===============================
 # Configuração da Página
@@ -20,13 +23,14 @@ st.set_page_config(page_title="Compatibilidade Candidato vs Vaga", layout="wide"
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
 # ===============================
-# Inicializar spaCy
+# Garantir que o modelo pt_core_news_sm esteja instalado
 # ===============================
 try:
     nlp = spacy.load("pt_core_news_sm")
 except OSError:
-    st.error("❌ Modelo spaCy 'pt_core_news_sm' não encontrado. Rode: python -m spacy download pt_core_news_sm")
-    st.stop()
+    print("❌ Modelo 'pt_core_news_sm' não encontrado. Instalando automaticamente...")
+    subprocess.run([sys.executable, "-m", "spacy", "download", "pt_core_news_sm"], check=True)
+    nlp = spacy.load("pt_core_news_sm")
 
 # ===============================
 # Funções de pré-processamento
