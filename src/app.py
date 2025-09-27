@@ -5,6 +5,9 @@ from sklearn.metrics.pairwise import cosine_similarity
 import joblib
 import os
 import numpy as np
+import spacy
+import re
+import unicodedata
 
 # ===============================
 # Configuração da Página
@@ -12,9 +15,40 @@ import numpy as np
 st.set_page_config(page_title="Compatibilidade Candidato vs Vaga", layout="wide")
 
 # ===============================
-# Diretório base (para caminhos robustos)
+# Diretório base
 # ===============================
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+
+# ===============================
+# Inicializar spaCy
+# ===============================
+try:
+    nlp = spacy.load("pt_core_news_sm")
+except OSError:
+    st.error("❌ Modelo spaCy 'pt_core_news_sm' não encontrado. Rode: python -m spacy download pt_core_news_sm")
+    st.stop()
+
+# ===============================
+# Funções de pré-processamento
+# ===============================
+def clean_text(text):
+    if not isinstance(text, str):
+        return ''
+    text = text.lower()
+    text = unicodedata.normalize('NFKD', text).encode('ASCII', 'ignore').decode('utf-8')
+    text = re.sub(r'[^a-z0-9\s]', ' ', text)
+    text = re.sub(r'\s+', ' ', text).strip()
+    return text
+
+def lemmatize_text(text):
+    doc = nlp(text)
+    tokens = [token.lemma_ for token in doc if not token.is_stop and token.is_alpha]
+    return ' '.join(tokens)
+
+def preprocess_text(text):
+    text = clean_text(text)
+    text = lemmatize_text(text)
+    return text
 
 # ===============================
 # Carregar dados CSV
@@ -25,21 +59,17 @@ def load_data():
     vagas_path = os.path.join(BASE_DIR, "data", "vagas.csv")
     prospects_path = os.path.join(BASE_DIR, "data", "prospects.csv")
 
-    # Verifique se os arquivos existem antes de tentar carregá-los
     if not os.path.exists(applicants_path) or not os.path.exists(vagas_path):
         st.error("❌ Arquivos de dados 'applicants.csv' ou 'vagas.csv' não encontrados na pasta 'data/'.")
         st.stop()
 
-    # Ler applicants
     applicants = pd.read_csv(applicants_path, low_memory=False)
 
-    # Ler vagas (com tratamento de possíveis delimitadores e encoding)
     try:
         vagas = pd.read_csv(vagas_path, low_memory=False)
     except pd.errors.ParserError:
         vagas = pd.read_csv(vagas_path, sep=';', encoding='latin1', low_memory=False)
 
-    # Ler prospects
     if os.path.exists(prospects_path):
         prospects = pd.read_csv(prospects_path, low_memory=False)
         prospects.columns = prospects.columns.str.strip().str.lower()
@@ -50,10 +80,16 @@ def load_data():
 
 applicants, vagas, prospects = load_data()
 
-# Preparar texto completo
-applicants['texto_completo'] = applicants['cv_pt'].fillna('')
-vagas['texto_completo'] = vagas['perfil_vaga_principais_atividades'].fillna('') + " " + \
-                         vagas['perfil_vaga_competencia_tecnicas_e_comportamentais'].fillna('')
+# ===============================
+# Aplicar pré-processamento
+# ===============================
+st.info("⏳ Processando textos dos candidatos e vagas...")
+
+applicants['texto_completo'] = applicants['cv_pt'].fillna('').apply(preprocess_text)
+vagas['texto_completo'] = (
+    vagas['perfil_vaga_principais_atividades'].fillna('') + " " +
+    vagas['perfil_vaga_competencia_tecnicas_e_comportamentais'].fillna('')
+).apply(preprocess_text)
 
 # ===============================
 # Carregar TF-IDF salvo
@@ -85,24 +121,6 @@ def get_top_keywords(tfidf_matrix, vectorizer, top_n=10):
 st.title("🔎 Análise de Compatibilidade")
 
 tab1, tab2 = st.tabs(["Análise Individual (Cód. Candidato Vs Cód. Vaga)", "Top 5 Candidatos para Vaga"])
-
-# ===============================
-# CSS - Plano de fundo
-# ===============================
-page_bg = """
-<style>
-[data-testid="stAppViewContainer"] { 
-    background-image: url("https://www.itagroup.com/filesimages/Insights/White%20Papers/Channel_Channel%20Partner%20Ecosystems/6.%20Retention%20Channel/Insight-Channel-Ecosystem-Retention-WP-Primary-Image.jpg"); 
-    background-size: cover; 
-    background-position: center; 
-    background-repeat: no-repeat; 
-}
-[data-testid="stHeader"] { background: rgba(0,0,0,0.5); }
-[data-testid="stSidebar"] { background: rgba(255,255,255,0.8); }
-h1, h2, h3, h4, h5, h6, p { color: #ffffff !important; }
-</style>
-"""
-st.markdown(page_bg, unsafe_allow_html=True)
 
 # -------------------------------
 # Aba 1: Análise Individual
@@ -195,7 +213,7 @@ with tab2:
                             'telefone': candidato['informacoes_pessoais_telefone_celular'],
                             'keywords': get_top_keywords(tfidf_matrix, vectorizer, 5)
                         })
-                        if len(resultados) >= 5:  # já encontrou 5
+                        if len(resultados) >= 5:
                             break
                 return resultados
 
@@ -203,16 +221,14 @@ with tab2:
             top5 = []
             if len(top5) < 5:
                 top5 = buscar_top5(applicants.head(1000), 0.70, vaga_texto_top)
-
             if len(top5) < 5:
                 top5 += buscar_top5(applicants.iloc[1000:6000], 0.50, vaga_texto_top)
-
             if len(top5) < 5:
                 top5 += buscar_top5(applicants.iloc[6000:11000], 0.30, vaga_texto_top)
 
             if top5:
                 st.subheader("🏆 Top 5 Candidatos")
-                resultados_df = pd.DataFrame(top5[:5])  # garante só 5
+                resultados_df = pd.DataFrame(top5[:5])
                 resultados_df['compatibilidade'] = resultados_df['compatibilidade'].apply(lambda x: f"{x*100:.2f}%")
                 st.dataframe(resultados_df[['id_candidato','nome','compatibilidade','area_atuacao','nivel_academico']], use_container_width=True)
             else:
