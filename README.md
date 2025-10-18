@@ -5,6 +5,8 @@
 
 ### O sistema permite:
 
+#### Vídeo criado com o Notebook LM com o objetivo de abordar de forma didática o funconamento do código fonte do projeto: https://drive.google.com/file/d/1PA7TIcJoY2NYJHoQ54co2gtTgwEic29J/view?usp=drive_link
+
 Comparar um candidato específico com uma vaga escolhida;
 
 Exibir informações detalhadas do candidato e da vaga;
