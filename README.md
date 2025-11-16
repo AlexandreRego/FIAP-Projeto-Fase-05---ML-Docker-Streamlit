@@ -114,6 +114,13 @@ O notebook Tratamentos_Bases_Fase_05.ipynb contém:
 
 Limpeza e padronização das bases de candidatos e vagas;
 
+___________________________________________________________________________________________________________________________
+
+# Acesse meu app aqui!
+
+https://alexandrerego-fiap-projeto-fase-05---ml-docker-st-srcapp-09dfh5.streamlit.app/
+
+
 Normalização de colunas e tratamento de valores ausentes;
 
 Exportação final dos datasets para o app e treinamento.
